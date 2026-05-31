@@ -19,8 +19,6 @@ Este é um web app interativo de **Nível Difícil** projetado no estilo de plat
 
 Para quebrar a tensão do nível avançado das perguntas, a interface renderiza **memes dinâmicos** a cada nova questão, unindo conhecimento técnico e humor de forma fluida.
 
-> 🌐 **Precisa de uma demonstração?** Se você fez o deploy (ex: GitHub Pages), coloque o link aqui!
-
 ---
 
 ## 🚀 Principais Funcionalidades
