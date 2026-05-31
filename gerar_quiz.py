@@ -1,0 +1,261 @@
+import os
+
+# Lista com os links que você enviou (organizados por tela/pergunta)
+b64s = [
+    "https://i.pinimg.com/736x/29/99/f8/2999f82bf86124fe461a769647949408.jpg",  # Tela de Início
+    "https://i.pinimg.com/736x/a1/8d/3c/a18d3c0431ff347aeeb78b5163c60a98.jpg",  # Pergunta 1
+    "https://i.pinimg.com/1200x/28/d6/59/28d65937d68fdc127cb275dc7c0ccecc.jpg", # Pergunta 2
+    "https://i.pinimg.com/736x/59/6e/14/596e1403fadd6d49d7722779ff36b7df.jpg",  # Pergunta 3
+    "https://i.pinimg.com/736x/94/d4/59/94d4590d97a6a882cf33f9e1e4fe513d.jpg",  # Pergunta 4
+    "https://i.pinimg.com/736x/05/b2/1f/05b21fbfef6546481ac8b1886c1a076f.jpg",  # Pergunta 5
+    "https://i.pinimg.com/736x/a8/c5/38/a8c538e5eccca21adb1d1bf95df39006.jpg",  # Pergunta 6
+    "https://i.pinimg.com/736x/84/cc/ba/84ccbafec0f64a4edb777d64fe1d786a.jpg",  # Pergunta 7
+    "https://i.pinimg.com/736x/d6/60/78/d66078d75cfbedc2dec61a7bd1e98cb4.jpg",  # Pergunta 8
+    "https://i.pinimg.com/736x/2e/40/43/2e40437da74c999a66cd2be29a3e7153.jpg",  # Pergunta 9
+    "https://i.pinimg.com/736x/3e/fe/9e/3efe9e4e41fefbc9eab660a492bbbba6.jpg",  # Pergunta 10
+    "https://i.pinimg.com/736x/0d/fe/43/0dfe4347c22a44c33de972fd60078b37.jpg"   # Tela de Resultados
+]
+
+
+memes_js = "var MEMES = [\n"
+for url in b64s[1:11]:
+    memes_js += f'  "{url}",\n'
+memes_js += "];"
+
+
+html = f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz IA & Empregabilidade</title>
+  <style>
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{ font-family: 'Segoe UI', sans-serif; background: #0d0020; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 1rem; }}
+    #app {{ width: 100%; max-width: 680px; border-radius: 14px; overflow: hidden; }}
+    .screen {{ display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 520px; padding: 2rem; text-align: center; }}
+    .screen.active {{ display: flex; }}
+    #s0 {{ background: #46178f; }}
+    .meme-lg {{ max-width: 100%; max-height: 250px; object-fit: contain; border-radius: 14px; margin-bottom: 1rem; border: 3px solid rgba(255,255,255,.35); }}
+    .meme-sm {{ max-width: 100%; max-height: 180px; object-fit: contain; border-radius: 8px; border: 2px solid rgba(255,255,255,.25); display: block; margin: .5rem auto .5rem; }}
+    #s0 h1 {{ color: #fff; font-size: 1.9rem; font-weight: 900; margin-bottom: .5rem; }}
+    #s0 p {{ color: rgba(255,255,255,.8); font-size: .95rem; margin-bottom: .75rem; }}
+    .badge {{ background: rgba(255,255,255,.15); border-radius: 10px; padding: .6rem 1.2rem; margin-bottom: 1.5rem; color: #ffdd57; font-size: .85rem; font-weight: 700; }}
+    .btn-start {{ background: #fff; color: #46178f; font-weight: 800; font-size: 1.1rem; padding: 14px 44px; border: none; border-radius: 30px; cursor: pointer; }}
+    .btn-start:hover {{ transform: scale(1.05); }}
+    #s1 {{ background: #1a0a3b; padding: 0; align-items: stretch; }}
+    .q-header {{ background: #2d1160; padding: .75rem 1.5rem; display: flex; align-items: center; gap: 12px; }}
+    .q-counter {{ color: rgba(255,255,255,.7); font-size: .85rem; font-weight: 600; white-space: nowrap; }}
+    .prog-wrap {{ flex: 1; background: rgba(255,255,255,.2); border-radius: 10px; height: 8px; overflow: hidden; }}
+    .prog-bar {{ background: #fff; height: 100%; border-radius: 10px; width: 10%; transition: width .3s; }}
+    .timer {{ width: 48px; height: 48px; border-radius: 50%; background: #e21b3c; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.2rem; color: #fff; flex-shrink: 0; }}
+    .fb-bar {{ display: none; padding: .6rem 1rem; text-align: center; font-weight: 700; font-size: .85rem; color: #fff; line-height: 1.4; }}
+    .q-body {{ padding: .75rem 1.5rem 1rem; flex: 1; display: flex; flex-direction: column; }}
+    .diff-badge {{ text-align: center; margin-bottom: .4rem; font-size: .75rem; font-weight: 700; }}
+    .diff-badge span {{ background: rgba(255,50,50,.25); color: #ff8080; padding: 3px 10px; border-radius: 20px; }}
+    .q-text {{ color: #fff; font-weight: 800; font-size: 1rem; text-align: center; margin-bottom: .85rem; min-height: 48px; line-height: 1.4; }}
+    .opts-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }}
+    .opt-btn {{ border: none; border-radius: 12px; padding: 11px 10px; font-weight: 700; font-size: .8rem; color: #fff; cursor: pointer; text-align: left; display: flex; align-items: flex-start; gap: 8px; line-height: 1.35; }}
+    .opt-btn:hover:not(:disabled) {{ filter: brightness(1.12); }}
+    .opt-btn .shape {{ width: 22px; height: 22px; border-radius: 4px; background: rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px; margin-top: 1px; }}
+    .next-wrap {{ padding: 0 1.5rem 1rem; text-align: center; }}
+    .btn-next {{ background: #7b2ff7; color: #fff; font-weight: 800; font-size: .95rem; padding: 10px 28px; border: none; border-radius: 20px; cursor: pointer; display: none; }}
+    #s2 {{ background: #46178f; }}
+    #s2 h2 {{ color: #fff; font-size: 1.8rem; font-weight: 900; margin-bottom: .25rem; }}
+    .stars {{ font-size: 2rem; margin: .5rem 0; }}
+    .score-box {{ background: rgba(255,255,255,.15); border-radius: 16px; padding: 1.2rem 2.5rem; margin: 1rem 0; }}
+    .score-num {{ color: #fff; font-size: 3.5rem; font-weight: 900; line-height: 1; }}
+    .score-label {{ color: rgba(255,255,255,.8); font-size: .9rem; margin-top: .3rem; }}
+    .result-msg {{ color: rgba(255,255,255,.85); font-size: .95rem; max-width: 320px; margin-bottom: 1.5rem; }}
+    .btn-restart {{ background: #fff; color: #46178f; font-weight: 800; font-size: 1rem; padding: 12px 36px; border: none; border-radius: 30px; cursor: pointer; }}
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="s0" class="screen active">
+    <img class="meme-lg" src="{b64s[0]}" alt="meme">
+    <h1>IA & Empregabilidade</h1>
+    <p>10 perguntas — Nível Difícil</p>
+    <div class="badge">⚠️ Atenção: todas as opções parecem corretas!</div>
+    <button class="btn-start" id="btnStart">▶ Iniciar Quiz</button>
+  </div>
+
+  <div id="s1" class="screen">
+    <div class="q-header">
+      <span class="q-counter" id="qcount">1 / 10</span>
+      <div class="prog-wrap"><div class="prog-bar" id="prog"></div></div>
+      <div class="timer" id="tmr">25</div>
+    </div>
+    <div class="fb-bar" id="fbbar"></div>
+    <div class="q-body">
+      <div class="diff-badge" id="diff"></div>
+      <img class="meme-sm" id="qmeme" src="" alt="meme">
+      <div class="q-text" id="qtxt"></div>
+      <div class="opts-grid" id="opts"></div>
+    </div>
+    <div class="next-wrap">
+      <button class="btn-next" id="btnNext">Próxima ➜</button>
+    </div>
+  </div>
+
+  <div id="s2" class="screen">
+    <img class="meme-lg" src="{b64s[11]}" alt="resultado">
+    <h2 id="rTitle">Parabéns!</h2>
+    <div class="stars" id="rStars">⭐⭐⭐</div>
+    <div class="score-box">
+      <div class="score-num" id="rScore">0/10</div>
+      <div class="score-label">acertos</div>
+    </div>
+    <p class="result-msg" id="rMsg"></p>
+    <button class="btn-restart" id="btnRestart">🔄 Tentar novamente</button>
+  </div>
+</div>
+
+<script>
+  {memes_js}
+  var qs = [
+    {{d:"🔴 DIFÍCIL", q:"No contexto do banner, qual é a diferença entre 'IA substitui profissionais' e 'IA substitui quem não usa IA'?", o:["Nenhuma diferença, ambas dizem a mesma coisa","A segunda responsabiliza o profissional pela adaptação, não a tecnologia","A primeira é verdadeira e a segunda é falsa","Ambas indicam que só programadores serão afetados"], a:1, exp:"A segunda desloca a responsabilidade para o profissional: quem não se adaptar será substituído."}},
+    {{d:"🔴 DIFÍCIL", q:"O 'matching inteligente' cruza dados entre vagas e candidatos. Qual limitação essa abordagem pode ter?", o:["Não consegue processar currículos em PDF","Pode reproduzir vieses históricos presentes nos dados de contratação","Só funciona para vagas na área de tecnologia","Depende exclusivamente do LinkedIn"], a:1, exp:"Sistemas treinados com dados históricos podem perpetuar vieses de gênero, raça ou origem."}},
+    {{d:"🔴 DIFÍCIL", q:"O banner cita 'SEO de perfil no LinkedIn'. Por que essa estratégia é ligada ao recrutamento automatizado?", o:["O LinkedIn cobra menos por perfis otimizados","Recrutadores humanos preferem perfis com mais conexões","Algoritmos de ATS priorizam perfis com palavras-chave relevantes","SEO aumenta o número de curtidas"], a:2, exp:"ATS filtram perfis por palavras-chave. Um perfil otimizado aparece mais nas buscas automatizadas."}},
+    {{d:"🔴 DIFÍCIL", q:"A IA é descrita como 'copiloto para aumentar produtividade'. Qual termo técnico descreve melhor esse modelo?", o:["IA Generativa Autônoma","Automação Total de Processos (RPA)","Inteligência Aumentada (Human-in-the-loop)","Machine Learning Supervisionado"], a:2, exp:"'Inteligência Aumentada' descreve o modelo onde a IA auxilia o humano sem substituí-lo."}},
+    {{d:"🔴 DIFÍCIL", q:"O banner destaca empatia e liderança como habilidades insubstituíveis. Qual argumento técnico sustenta isso?", o:["IAs ainda não têm acesso à internet","Modelos de linguagem não processam português","Empatia envolve consciência e experiência vivida que modelos estatísticos não possuem genuinamente","Liderança exige carteira de trabalho assinada"], a:2, exp:"Modelos simulam empatia por padrões estatísticos, mas não possuem consciência ou experiência vivida."}},
+    {{d:"🔴 DIFÍCIL", q:"O trabalho usou 'pesquisa bibliográfica e análise de tendências'. O que diferencia isso de pesquisa experimental?", o:["Bibliográfica usa só livros físicos; experimental usa internet","Bibliográfica analisa fontes existentes sem manipular variáveis; experimental testa hipóteses em ambiente controlado","Pesquisa experimental é sempre mais confiável","Não há diferença metodológica entre os dois tipos"], a:1, exp:"Bibliográfica systematiza conhecimento já produzido. Experimental manipula variáveis para testar hipóteses."}},
+    {{d:"🔴 DIFÍCIL", q:"Se a IA gera 'roteiros de estudo personalizados', qual princípio pedagógico esse recurso aplica?", o:["Ensino tradicional expositivo","Aprendizagem baseada em memorização","Aprendizagem Adaptativa (Adaptive Learning)","Avaliação somativa padronizada"], a:2, exp:"Roteiros personalizados por perfil e progresso caracterizam o Adaptive Learning."}},
+    {{d:"🔴 DIFÍCIL", q:"A IA simula entrevistas com 'feedback em tempo real'. Qual tecnologia torna isso possível?", o:["Blockchain para registro das respostas","NLP combinado com análise de sentimentos","Armazenamento em nuvem com criptografia","Reconhecimento de impressão digital"], a:1, exp:"NLP interpreta as respostas e análise de sentimentos avalia tom e coerência."}},
+    {{d:"🔴 DIFÍCIL", q:"Qual risco a narrativa de 'IA + empregabilidade' pode esconder se não for problematizada?", o:["Que as pessoas usem o LinkedIn com mais frequência","Que o acesso desigual à tecnologia amplie a exclusão de trabalhadores sem recursos","Que profissionais de TI percam empregos mais rapidamente","Que empresas parem de contratar recrutadores imediatamente"], a:1, exp:"'Adapte-se ou seja substituído' ignora a desigualdade: nem todos têm recursos para se capacitar em IA."}},
+    {{d:"🔴 DIFÍCIL", q:"Qual seria a crítica mais pertinente ao objetivo de 'vencer barreiras do recrutamento automatizado'?", o:["O trabalho deveria ter mais imagens coloridas","Otimizar para ATS trata o sintoma sem questionar se esses filtros são justos ou eficazes","Recrutamento automatizado só existe em multinacionais","Candidatos com diploma não precisam dessas estratégias"], a:1, exp:"Otimizar perfis para ATS é útil, mas não questiona se esses sistemas identificam os melhores candidatos."}}
+  ];
+  
+  var COLOR_SETS = [
+    ["#e21b3c","#1368ce","#d89e00","#26890c"],
+    ["#1368ce","#26890c","#e21b3c","#9b2335"],
+    ["#26890c","#9b2335","#1368ce","#d89e00"],
+    ["#9b2335","#d89e00","#26890c","#1368ce"],
+    ["#d89e00","#e21b3c","#9b2335","#26890c"],
+    ["#1368ce","#e21b3c","#26890c","#d89e00"],
+    ["#26890c","#1368ce","#d89e00","#e21b3c"],
+    ["#e21b3c","#26890c","#1368ce","#9b2335"],
+    ["#9b2335","#1368ce","#e21b3c","#d89e00"],
+    ["#d89e00","#26890c","#9b2335","#1368ce"]
+  ];
+  
+  var SH = ["▲","◆","●","■"];
+  var cur = 0, scr = 0, answered = false, tmrId = null, tLeft = 25;
+  
+  function $(id) {{ return document.getElementById(id); }}
+  
+  function show(n) {{
+    ['s0','s1','s2'].forEach(function(id){{ $(id).classList.remove('active'); }});
+    $(['s0','s1','s2'][n]).classList.add('active');
+  }}
+  
+  function startQuiz() {{ cur = 0; scr = 0; show(1); loadQ(); }}
+  
+  function loadQ() {{
+    answered = false;
+    var q = qs[cur];
+    var BG = COLOR_SETS[cur];
+    $('qcount').textContent = (cur+1) + ' / 10';
+    $('prog').style.width = ((cur+1)/10*100) + '%';
+    $('qtxt').textContent = q.q;
+    $('diff').innerHTML = '<span>' + q.d + '</span>';
+    
+    $('qmeme').src = MEMES[cur];
+    
+    $('fbbar').style.display = 'none';
+    $('btnNext').style.display = 'none';
+    var grid = $('opts');
+    grid.innerHTML = '';
+    for (var i = 0; i < 4; i++) {{
+      (function(idx) {{
+        var b = document.createElement('button');
+        b.className = 'opt-btn';
+        b.style.background = BG[idx];
+        b.innerHTML = '<span class="shape">' + SH[idx] + '</span>' + q.o[idx];
+        b.onclick = function() {{ doAnswer(idx); }};
+        grid.appendChild(b);
+      }})(i);
+    }}
+    startTimer();
+  }}
+  
+  function startTimer() {{
+    clearInterval(tmrId);
+    tLeft = 25;
+    var el = $('tmr');
+    el.textContent = 25;
+    el.style.background = '#e21b3c';
+    tmrId = setInterval(function() {{
+      tLeft--;
+      el.textContent = tLeft;
+      if (tLeft <= 5) el.style.background = '#7a0000';
+      if (tLeft <= 0) {{ clearInterval(tmrId); timeUp(); }}
+    }}, 1000);
+  }}
+  
+  function timeUp() {{
+    if (answered) return;
+    answered = true;
+    var q = qs[cur];
+    var btns = $('opts').querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {{
+      btns[i].disabled = true;
+      btns[i].style.opacity = i === q.a ? '1' : '0.3';
+      if (i === q.a) btns[i].style.outline = '3px solid #fff';
+    }}
+    showFB(false, '⏰ Tempo esgotado! 💡 ' + q.exp);
+    $('btnNext').style.display = 'inline-block';
+  }}
+  
+  function doAnswer(idx) {{
+    if (answered) return;
+    answered = true;
+    clearInterval(tmrId);
+    var q = qs[cur];
+    var btns = $('opts').querySelectorAll('button');
+    for (var i = 0; i < btns.length; i++) {{
+      btns[i].disabled = true;
+      btns[i].style.opacity = i === q.a ? '1' : '0.3';
+      if (i === q.a) btns[i].style.outline = '3px solid #fff';
+    }}
+    if (idx === q.a) {{ scr++; showFB(true, '✅ Correto! 💡 ' + q.exp); }}
+    else {{ showFB(false, '❌ Errou! 💡 ' + q.exp); }}
+    $('btnNext').style.display = 'inline-block';
+  }}
+  
+  function showFB(ok, msg) {{
+    var bar = $('fbbar');
+    bar.textContent = msg;
+    bar.style.background = ok ? '#26890c' : '#8b0000';
+    bar.style.display = 'block';
+  }}
+  
+  function nextQ() {{ cur++; if (cur >= qs.length) showResult(); else loadQ(); }}
+  
+  function showResult() {{
+    show(2);
+    $('rScore').textContent = scr + '/10';
+    var title, stars, msg;
+    if (scr === 10)
+    {{ title='Perfeito!';      stars='⭐⭐⭐'; msg='Incrível! Você domina IA e Empregabilidade no nível mais difícil!'; }}
+    else if (scr >= 8) {{ title='Excelente!';     stars='⭐⭐⭐'; msg='Desempenho impressionante nesse nível difícil!'; }}
+    else if (scr >= 6) {{ title='Muito bom!';     stars='⭐⭐';  msg='Bom resultado! Revise as explicações das que errou.'; }}
+    else if (scr >= 4) {{ title='Mediano';        stars='⭐';   msg='As perguntas são difíceis. Releia o material e tente novamente!'; }}
+    else if (scr >= 2) {{ title='Foi difícil!';   stars='';     msg='Não desanime — as questões eram de nível avançado!'; }}
+    else               {{ title='Zerou!';         stars='';     msg='Estude bem o conteúdo e volte mais forte!'; }}
+    $('rTitle').textContent = title;
+    $('rStars').textContent = stars;
+    $('rMsg').textContent = msg;
+  }}
+  
+  $('btnStart').onclick = startQuiz;
+  $('btnNext').onclick = nextQ;
+  $('btnRestart').onclick = startQuiz;
+</script>
+</body>
+</html>"""
+
+with open("quiz_ia_com_memes.html", "w", encoding="utf-8") as f:
+    f.write(html)
+
+print("Arquivo 'quiz_ia_com_memes.html' gerado com sucesso!")
